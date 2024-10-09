@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Bootstrap demo</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
+          integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css"
+          integrity="sha512-Kc323vGBEqzTmouAECnVceyQqyqdsSiqLQISBL29aUW4U/M7pSPA/gEUZQqv1cwx4OnYxTxve5UMg5GT6L4JJg=="
+          crossorigin="anonymous" referrerpolicy="no-referrer"/>
+
+</head>
+<body>
+<div class=" p-4">
+
+    <div style="background: white;width: 100%;position: fixed" class="row" id="start_exp">
+        <div class="col-4">
+            <input id="exp_name" type="text" class="flex-ro" value="Experiment Name">
+        </div>
+        <div class="col-3">
+            <button id="str_exp" onclick="startExp()" class="btn btn-info"> Start Experiment</button>
+        </div>
+    </div>
+
+
+    <div class="row mt-5">
+        <table id="exp_table" class="table w-100 overflow-scroll">
+            <thead>
+            <tr>
+
+                <th scope="col">Start Time</th>
+                <th scope="col">End Time</th>
+                <th scope="col">
+                    Location
+                </th>
+                <th scope="col">BC Amount</th>
+                <th scope="col">Audio channel 1</th>
+                <th scope="col">Video channel 1</th>
+                <th scope="col">Bus</th>
+                <th scope="col">Truck</th>
+                <th scope="col">Van</th>
+                <th scope="col">Car</th>
+                <th scope="col">Tractor</th>
+            </tr>
+            </thead>
+            <tbody>
+
+            </tbody>
+        </table>
+
+
+    </div>
+
+
+</div>
+
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
+        crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/js/all.min.js"
+        integrity="sha512-6sSYJqDreZRZGkJ3b+YfdhB3MzmuP9R7X1QZ6g5aIXhRvR1Y/N/P47jmnkENm7YL3oqsmI6AK+V6AD99uWDnIw=="
+        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
+<script>
+
+    const currentLocation = {
+        lat: 0,
+        lng: 0,
+        updateLocation: () => {
+            navigator.geolocation.watchPosition((position) => {
+                console.log(position.coords.latitude)
+                this.lat = position.coords.latitude
+                this.lng = position.coords.longitude
+            }, () => {
+                alert("Sorry, no location available.");
+            });
+        },
+        getLat: () => {
+            return this.lat
+        },
+        getLng: () => {
+            return this.lng
+        }
+    }
+
+
+    const expTable = {
+        elm: document.querySelector("#exp_table"),
+        rowCount: 0,
+        timers: {},
+        makeVisible: function () {
+            this.elm.style.visibility = "visible"
+        },
+        makeHidden: function () {
+            this.elm.style.visibility = "hidden"
+        },
+        addRow: function () {
+
+
+            const rCnt = this.rowCount
+            if (rCnt > 0) {
+
+                document.querySelector(`#row_${rCnt - 1}`).querySelectorAll("button").forEach((itm) => {
+                    itm.remove()
+                })
+
+                document.querySelector(`#row_${rCnt - 1}`).querySelectorAll("input").forEach((itm) => {
+                    itm.disabled = true
+                })
+
+
+            }
+            row = document.createElement("tr")
+            row.setAttribute("id", `row_${rCnt}`)
+
+            newClm = document.createElement("td")
+
+            newClm.appendChild(document.createTextNode(new Date().toJSON()))
+            row.appendChild(newClm)
+
+            endClm = document.createElement("td")
+
+            endClm.appendChild(document.createTextNode(new Date().toJSON()))
+            this.timers[`${rCnt}`] = []
+            setInterval(function () {
+                endClm.innerHTML = new Date().toJSON()
+            }, 500)
+            row.appendChild(endClm)
+
+            ltnLng = document.createElement("td")
+            ltnLng.innerHTML = `${currentLocation.getLat()}, ${currentLocation.getLng()}`
+            row.appendChild(ltnLng)
+
+            bcAmount = document.createElement("td")
+            setInterval(function () {
+                bcAmount.innerHTML = `${Math.floor(Math.random() * 6) + 1}`
+            }, 2000)
+            row.appendChild(bcAmount)
+
+
+            mic = document.createElement("td")
+            mic.innerHTML = ` <i class="fa fa-fade fa-microphone-alt"></i>`
+            row.appendChild(mic)
+
+            camera = document.createElement("td")
+            camera.innerHTML = ` <i class="fa fa-fade fa-camera"></i>`
+            row.appendChild(camera)
+
+
+            function drawCounter() {
+                let counter = document.createElement("td")
+                counter.innerHTML = `
+
+            <div class="row p-3">
+                        <button class="btn btn-danger " style="width : 33% !important">-</button>
+                        <input value="0" class="col-3" style="width : 23% !important">
+                        <button class="btn btn-success " style="width : 33% !important">+</button>
+                    </div>
+`
+
+
+                let span = counter.getElementsByTagName("button")
+
+                let input = counter.getElementsByTagName("input")[0];
+                input.onchange = function () {
+                    input.value = +input.value || 0;
+                };
+                span[0].onclick = function () {
+                    input.value = Math.max(0, input.value - 1);
+                };
+                span[1].onclick = function () {
+                    input.value -= -1;
+                };
+                row.append(counter)
+            }
+
+            drawCounter()
+            drawCounter()
+            drawCounter()
+            drawCounter()
+            drawCounter()
+
+
+            this.elm.querySelector("tbody").appendChild(row)
+
+            this.rowCount++
+        },
+
+
+    }
+
+    function init() {
+        expTable.makeHidden()
+        currentLocation.updateLocation()
+    }
+
+
+    function startExp() {
+        expTable.makeVisible()
+        document.querySelector("#str_exp").innerHTML = "New Row"
+        document.querySelector("#exp_name").disabled = true
+        expTable.addRow()
+    }
+
+    init()
+
+
+</script>
+</body>
+</html>
