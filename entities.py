@@ -1,29 +1,91 @@
-from app import db
-from sqlalchemy.ext.hybrid import hybrid_property
+import json
+from datetime import datetime
+from enum import Enum
+from typing import List, Optional, Any
+from pydantic import validator, BaseModel, field_validator, constr
+from sqlalchemy import event
+from sqlmodel import Field, SQLModel, Relationship, Column, JSON
 
 
-class Experiment(db.Model):
-    __tablename__ = 'Experiments'
-    id = db.Column('id', db.Integer, primary_key=True)
-    name = db.Column('name', db.String(80))
-    creator_name = db.Column('creator_name', db.String(80))
-    create_at = db.Column('create_at', db.DateTime)
-    update_at = db.Column('update_at', db.DateTime)
+class SenderType(str, Enum):
+    PC = "pc"
+    PHONE = "phone"
+    HARDWARE = "hardware"
 
 
-class Address(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    sound_channel1_dir = db.Column(db.String(80))
-    person_id = db.Column(db.JSON, db.ForeignKey('person.id'),
-                          nullable=False)
+class CounterType(str, Enum):
+    GASOLINE = "gasoline"
+    DIESEL = "diesel"
+    HYBRID = "hybrid"
+    TRUCK = "truck"
+    BUS = "bus"
+    SMALL_TRUCK = "small_truck"
 
 
-class saved_object():
-    object_type: str
-    id: str
-    object_location: str
+class Counter(BaseModel):
+    counter_type: CounterType
+    count: int
 
-    def __init__(self, object_type, id, base_addr):
-        self.object_type = object_type
-        self.id = id
-        self.object_location = '{base}/{id}'.format(base=base_addr, id=id)
+
+class ExperimentBase(SQLModel):
+    experiment_name: str
+    creator_name: str
+    sampling_rate: int
+    comment: Optional[int] = None
+    sender_type: SenderType
+
+
+class Experiment(ExperimentBase, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    create_at: datetime
+    update_at: datetime
+    rows: List["ExperimentRow"] = Relationship(back_populates="experiment")
+
+
+class ExperimentCreate(ExperimentBase):
+    pass
+
+
+class ExperimentRowBase(SQLModel):
+    latitude: float
+    longitude: float
+    allowed_speed: int
+    current_speed: int
+    temperature: int
+    humidity: int
+    start_time: int
+    end_time: int
+    counters: list[Counter] | str = Field(sa_column=Column(JSON))
+
+    def serialize_counters(self):
+        if isinstance(self.counters, list) and all(isinstance(c, Counter) for c in self.counters):
+            return json.dumps([c.model_dump() for c in self.counters])
+        return self.counters
+
+    @classmethod
+    def get_counters(self, **kwargs: Any):
+        print(json.loads(self.counters))
+        # if 'counters' in kwargs and isinstance(kwargs['counters'], str):
+        #     # Convert the JSON string back to a list of Counter instances
+        #     counters_data = json.loads(kwargs['counters'])
+        #     kwargs['counters'] = [Counter(**counter) for counter in counters_data]
+        # return cls(**kwargs)
+
+
+class ExperimentRow(ExperimentRowBase, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    experiment_id: int = Field(foreign_key="experiment.id")
+    experiment: "Experiment" = Relationship(back_populates="rows")
+    record: str
+
+
+class ExperimentRowCreate(ExperimentRowBase):
+    record_file: constr(strict=True)
+    pass
+
+
+class RecordedObject(SQLModel):
+    object_name: str
+    storage_address: str
+    start_time: datetime
+    end_time: datetime
