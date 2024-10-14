@@ -1,5 +1,13 @@
 import React from "react";
 
-export default function SetupPage() {
-  return <div>SetupPage</div>;
+interface SetupPageProps {
+  setSettingsObj: (settingsObj: any) => void;
+}
+
+export default function SetupPage({ setSettingsObj }: SetupPageProps) {
+  return (
+    <div>
+      <h1>SetupPage</h1>
+    </div>
+  );
 }

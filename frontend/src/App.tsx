@@ -1,15 +1,20 @@
 import React from "react";
-import logo from "./logo.svg";
-import Counter from "./components/Counter";
 import { useState } from "react";
+import { Routes, Route } from "react-router-dom";
+
+import SetupPage from "./pages/SetupPage";
+import ExperimentPage from "./pages/ExperimentPage";
+import ErrorPage from "./pages/ErrorPage";
 
 function App() {
-  const [count, setCount] = useState(0);
+  const [settingsObj, setSettingsObj] = useState({});
 
   return (
-    <div>
-      <Counter title="Automiasdasd" count={count} setCount={setCount} />
-    </div>
+    <Routes>
+      <Route path="/" element={<SetupPage setSettingsObj={setSettingsObj} />} />
+      <Route path="/experiment" element={<ExperimentPage />} />
+      <Route path="*" element={<ErrorPage />} />
+    </Routes>
   );
 }
 
