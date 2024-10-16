@@ -2,8 +2,8 @@ import json
 from datetime import datetime
 from enum import Enum
 from typing import List, Optional, Any
-from pydantic import validator, BaseModel, field_validator, constr
-from sqlalchemy import event
+
+from pydantic import BaseModel, constr
 from sqlmodel import Field, SQLModel, Relationship, Column, JSON
 
 
@@ -20,6 +20,10 @@ class CounterType(str, Enum):
     TRUCK = "truck"
     BUS = "bus"
     SMALL_TRUCK = "small_truck"
+    @staticmethod
+    def list():
+        return list(map(lambda c: c.value, CounterType))
+
 
 
 class Counter(BaseModel):
@@ -31,7 +35,7 @@ class ExperimentBase(SQLModel):
     experiment_name: str
     creator_name: str
     sampling_rate: int
-    comment: Optional[int] = None
+    comment: Optional[str] = None
     sender_type: SenderType
 
 
@@ -53,6 +57,7 @@ class ExperimentRowBase(SQLModel):
     current_speed: int
     temperature: int
     humidity: int
+    wind_speed: int
     start_time: int
     end_time: int
     counters: list[Counter] | str = Field(sa_column=Column(JSON))

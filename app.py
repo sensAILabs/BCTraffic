@@ -1,26 +1,49 @@
 import base64
-import json
-import os
 from datetime import datetime
-from itertools import count
-from typing import Union, Annotated
 
-from fastapi import FastAPI, Depends, UploadFile, File, HTTPException
-from sqlalchemy.testing import rowset
-from sqlmodel import Session
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
+from sqlmodel import select
+from starlette.responses import HTMLResponse
 
 from dependency_injection import SessionDep, create_db_and_tables
-from entities import ExperimentCreate, Experiment, ExperimentRowCreate, ExperimentRow, Counter, CounterType
+from entities import ExperimentCreate, Experiment, ExperimentRowCreate, ExperimentRow, CounterType
 
+TEMPLATES_AUTO_RELOAD = True
 app = FastAPI()
 
+create_db_and_tables()
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
-# create_db_and_tables()
+templates = Jinja2Templates(directory="templates")
 
 
-@app.get("/")
-def read_root():
-    return {"Hello": "World"}
+@app.get("/", response_class=HTMLResponse)
+def read_root(request: Request, session: SessionDep):
+    statement = select(Experiment)
+    results = session.exec(statement)
+    temp = results.fetchall()
+    print(temp[0])
+    return templates.TemplateResponse(
+        name="dashboard.html",
+        context={"request": request, "page_title": "Dashboard", "experiments": temp},
+    )
+
+
+@app.get("/experiment/new", response_class=HTMLResponse)
+def read_root(request: Request, session: SessionDep):
+    statement = select(Experiment)
+    results = session.exec(statement)
+    temp = results.fetchall()
+    print(temp[0])
+    return templates.TemplateResponse(
+        name="dashboard.html", context={"request": request, "page_tsitle": "Dashboard", "experiments": temp},
+    )
+
+
+class Config:
+    arbitrary_types_allowed = True
 
 
 @app.post("/experiment/", response_model=Experiment)
@@ -40,6 +63,17 @@ def read_item(session: SessionDep, experiment: ExperimentCreate):
     return new_experiment
 
 
+@app.get("/experiment/{experiment_id}", response_model=Experiment)
+def read_item(session: SessionDep, experiment_id: int, request: Request):
+    statement = select(Experiment).where(Experiment.id == experiment_id)
+    res = session.exec(statement)
+    exp = res.first()
+    return templates.TemplateResponse(
+        name="new_row.html",
+        context={"request": request, "page_title": "New Experiment", "experiment": exp, "counters": CounterType.list()},
+    )
+
+
 @app.post("/experiments/{experiment_id}/rows/", response_model=ExperimentRow)
 def create_experiment_row(
         experiment_id: int,
@@ -54,6 +88,7 @@ def create_experiment_row(
         current_speed=row.current_speed,
         temperature=row.temperature,
         humidity=row.humidity,
+        wind_speed=row.wind_speed,
         start_time=row.start_time,
         end_time=row.end_time,
     )
@@ -79,24 +114,3 @@ def create_experiment_row(
     session.commit()
     session.refresh(new_row)
     return new_row
-
-    #
-    #
-    # # print("Here")
-    # #
-    # #
-    # # ter = Counter()
-    # # ter.count = 2
-    # # print("Here1")
-    # # ter.counter_type = CounterType.TRUCK
-    # # print("Here3")
-    # #
-    # # print(json.dump(ter, indent=4))
-    # print("Her4")
-    # new_row = ExperimentRow(
-    #
-    # )
-    # session.add(new_row)
-    # await session.commit()
-    # await session.refresh(new_row)
-    # return new_row

@@ -1,0 +1,232 @@
+{% extends "index.html" %}
+{% block body %}
+    <div class="card mb-4">
+        <div class="card-header">
+            {{ experiment.experiment_name }}
+        </div>
+        <div class="card-body row">
+
+            <div class="col-3">
+                <label for="experiment_name" class="form-label"> experiment_name </label>
+                <input id="experiment_name" class="form-control col-3" value="{{ experiment.experiment_name }}"
+                       disabled>
+            </div>
+            <div class="col-3">
+                <label for="creator_name" class="form-label"> creator_name </label>
+                <input id="creator_name" class="form-control col-3" value="{{ experiment.creator_name }}" disabled>
+            </div>
+
+            <div class="col-3">
+                <label for="sampling_rate" class="form-label"> sampling_rate </label>
+                <input id="sampling_rate" class="form-control col-3" value="{{ experiment.sampling_rate }}" disabled>
+            </div>
+
+            <div class="col-3">
+                <label for="comment" class="form-label"> comment </label>
+                <input id="comment" class="form-control col-3" value="{{ experiment.comment }}" disabled>
+            </div>
+
+            <div class="col-3">
+                <label for="sender_type" class="form-label"> sender_type </label>
+                <input id="sender_type" class="form-control col-3" value="{{ experiment.sender_type }}" disabled>
+            </div>
+
+
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header rpw">
+            <div class="col float-end">
+
+                <button class="btn btn-success" onclick="gather_data()"> Run Experiment</button>
+
+            </div>
+        </div>
+        <div class="card-body ">
+            <div class="row mb-2">
+                <div class="col-5"><label for="latitude"> latitude</label><input class="form-control"
+                                                                                 placeholder="in progress ..."
+                                                                                 id="latitude"></div>
+                <div class="col-5"><label for="longitude"> longitude</label><input class="form-control"
+                                                                                   placeholder="in progress ..."
+                                                                                   id="longitude"></div>
+                <div class="col-5"><label for="allowed_speed"> allowed_speed</label><input class="form-control"
+                                                                                           placeholder="in progress ..."
+                                                                                           id="allowed_speed"></div>
+                <div class="col-5"><label for="current_speed"> current_speed</label><input class="form-control"
+                                                                                           placeholder="in progress ..."
+                                                                                           id="current_speed"></div>
+                <div class="col-5"><label for="temperature"> temperature</label><input class="form-control"
+                                                                                       placeholder="in progress ..."
+                                                                                       id="temperature"></div>
+                <div class="col-5"><label for="humidity"> humidity</label><input class="form-control"
+                                                                                 placeholder="in progress ..."
+                                                                                 id="humidity"></div>
+                <div class="col-5"><label for="wind_speed"> wind_speed</label><input class="form-control"
+                                                                                     placeholder="in progress ..."
+                                                                                     id="wind_speed"></div>
+            </div>
+            <div class="row">
+
+
+                {% for i in counters %}
+                    <th>
+
+
+                        <div class="col-3 row mt-2">
+                            <label for="{{ i }}">{{ i }}</label>
+                            <button onclick="min_fun(`{{ i }}`)" class="btn btn-danger"
+                                    style="width: 33% !important;">-
+                            </button>
+                            <input name="counter" id="{{ i }}" class="form-control" style="width: 33% !important;"
+                                   value="0"
+                                   type="number">
+                            <button onclick="pls_fun(`{{ i }}`)" class=" btn btn-success"
+                                    style="width: 33% !important;">+
+                            </button>
+
+                        </div>
+
+                    </th>
+                {% endfor %}
+
+
+            </div>
+
+        </div>
+
+
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header">
+            <div class="row">
+                <div class="col float-start">
+                    <i class="fas fa-table me-1"></i>
+                    Experiment rows
+                </div>
+                <div class="col float-end">
+                    <!-- Button trigger modal -->
+
+                </div>
+            </div>
+        </div>
+        <div class="card-body">
+            <table id="datatablesSimple">
+                <thead>
+                <tr>
+                    <th>Id</th>
+                    <th>Start Time</th>
+                    <th>End Time</th>
+                    <th>Location</th>
+                    <th>Humidity</th>
+                    <th>Wind Speed</th>
+                    <th>Temperature</th>
+
+                    {% for i in counters %}
+                        <th>
+                            {{ i }}
+                        </th>
+                    {% endfor %}
+
+                </tr>
+                </thead>
+                <tfoot>
+                <tr>
+                    <th> ID</th>
+                    <th> Name</th>
+                    <th>Researcher Name</th>
+                    <th>Sampling Rate</th>
+                    <th>Sender Type</th>
+                    <th>Create At</th>
+                </tr>
+                </tfoot>
+                <tbody>
+
+                {% for experiment in experiments %}
+                    <tr>
+                        <td>{{ experiment.id }}</td>
+                        <td>{{ experiment.experiment_name }}</td>
+                        <td>{{ experiment.creator_name }}</td>
+                        <td>{{ experiment.sampling_rate }}</td>
+                        <td>{{ experiment.sender_type }}</td>
+                        <td>{{ experiment.create_at }}</td>
+
+                    </tr>
+                {% endfor %}
+
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+
+
+{% endblock %}
+
+
+{% block addonJs %}
+
+
+    <script>
+
+        function pls_fun(input_id) {
+            input = document.getElementById(input_id)
+            input.value = parseInt(input.value) + 1
+        }
+
+        function min_fun(input_id) {
+            input = document.getElementById(input_id)
+            if (input.value > 0) {
+                input.value = parseInt(input.value) - 1
+            }
+
+        }
+
+        function gather_data() {
+            setInterval(function () {
+                values = {}
+                $('input[name=counter]').each(((i, v) => {
+                    {#console.log(i,v.id, v.value)#}
+                    values[v.id] = v.value
+                }))
+
+            }, 30000)
+        }
+
+        gather_data()
+
+        function update_status() {
+            navigator.geolocation.getCurrentPosition((position) => {
+                let lat = position.coords.latitude.toFixed(2);
+                let long = position.coords.longitude.toFixed(2);
+                $('#latitude').val(lat)
+                $('#longitude').val(long)
+                const weather_api = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${long}&current=temperature_2m,wind_speed_10m,relative_humidity_2m`
+                $.get(weather_api, function (res) {
+                    console.log(res)
+                    $('#temperature').val(`${res.current.temperature_2m} °C`)
+                    $('#wind_speed').val(`${res.current.wind_speed_10m} km/h`)
+                    $('#humidity').val(`${res.current.relative_humidity_2m} %`)
+                }).fail(function (err) {
+                    alert("Error in console")
+                    console.log(err)
+                })
+                console.log("status updated")
+            });
+        }
+
+        update_status()
+        setInterval(function () {
+            update_status();
+        }, 120000)
+
+
+    </script>
+
+    <script src="https://unpkg.com/wavesurfer.js@7"></script>
+
+    <script src="https://unpkg.com/wavesurfer.js@7/dist/plugins/record.min.js"></script>
+
+{% endblock %}
