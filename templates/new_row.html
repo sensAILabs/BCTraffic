@@ -39,7 +39,8 @@
         <div class="card-header rpw">
             <div class="col float-end">
 
-                <button class="btn btn-success" onclick="gather_data()"> Run Experiment</button>
+                <button class="btn btn-success" id="run_exp"> Run Experiment</button>
+                <div id="seconds"> </div>
 
             </div>
         </div>
@@ -57,15 +58,21 @@
                 <div class="col-5"><label for="current_speed"> current_speed</label><input class="form-control"
                                                                                            placeholder="in progress ..."
                                                                                            id="current_speed"></div>
-                <div class="col-5"><label for="temperature"> temperature</label><input class="form-control"
-                                                                                       placeholder="in progress ..."
-                                                                                       id="temperature"></div>
-                <div class="col-5"><label for="humidity"> humidity</label><input class="form-control"
-                                                                                 placeholder="in progress ..."
-                                                                                 id="humidity"></div>
-                <div class="col-5"><label for="wind_speed"> wind_speed</label><input class="form-control"
-                                                                                     placeholder="in progress ..."
-                                                                                     id="wind_speed"></div>
+                <div class="col-5"><label for="temperature"> temperature °C</label><input class="form-control"
+                                                                                          placeholder="in progress ..."
+                                                                                          id="temperature"></div>
+                <div class="col-5"><label for="humidity"> humidity % </label><input class="form-control"
+                                                                                    placeholder="in progress ..."
+                                                                                    id="humidity"></div>
+                <div class="col-5"><label for="wind_speed"> wind_speed km/h</label><input class="form-control"
+                                                                                          placeholder="in progress ..."
+                                                                                          id="wind_speed"></div>
+
+
+
+            </div>
+            <div id="mic">
+
             </div>
             <div class="row">
 
@@ -74,16 +81,16 @@
                     <th>
 
 
-                        <div class="col-3 row mt-2">
+                        <div class="row mt-2" style="width: 16.6% ; margin-right: 5px ">
                             <label for="{{ i }}">{{ i }}</label>
                             <button onclick="min_fun(`{{ i }}`)" class="btn btn-danger"
-                                    style="width: 33% !important;">-
+                                    style="width: 40% !important;">-
                             </button>
-                            <input name="counter" id="{{ i }}" class="form-control" style="width: 33% !important;"
+                            <input name="counter" id="{{ i }}" class="form-control" style="width: 20% !important;"
                                    value="0"
                                    type="number">
                             <button onclick="pls_fun(`{{ i }}`)" class=" btn btn-success"
-                                    style="width: 33% !important;">+
+                                    style="width: 40% !important;">+
                             </button>
 
                         </div>
@@ -113,51 +120,31 @@
             </div>
         </div>
         <div class="card-body">
-            <table id="datatablesSimple">
+
+            <table class="table">
                 <thead>
                 <tr>
-                    <th>Id</th>
-                    <th>Start Time</th>
-                    <th>End Time</th>
-                    <th>Location</th>
-                    <th>Humidity</th>
-                    <th>Wind Speed</th>
-                    <th>Temperature</th>
+                    <th scope="col">Id</th>
+                    <th scope="col">Start Time</th>
+                    <th scope="col">End Time</th>
+                    <th scope="col">Location</th>
+                    <th scope="col">Humidity</th>
+                    <th scope="col">Wind Speed</th>
+                    <th scope="col">Temperature</th>
 
                     {% for i in counters %}
-                        <th>
+                        <th scope="col">
                             {{ i }}
                         </th>
                     {% endfor %}
-
                 </tr>
                 </thead>
-                <tfoot>
-                <tr>
-                    <th> ID</th>
-                    <th> Name</th>
-                    <th>Researcher Name</th>
-                    <th>Sampling Rate</th>
-                    <th>Sender Type</th>
-                    <th>Create At</th>
-                </tr>
-                </tfoot>
-                <tbody>
-
-                {% for experiment in experiments %}
-                    <tr>
-                        <td>{{ experiment.id }}</td>
-                        <td>{{ experiment.experiment_name }}</td>
-                        <td>{{ experiment.creator_name }}</td>
-                        <td>{{ experiment.sampling_rate }}</td>
-                        <td>{{ experiment.sender_type }}</td>
-                        <td>{{ experiment.create_at }}</td>
-
-                    </tr>
-                {% endfor %}
+                <tbody id="row_tbud">
 
                 </tbody>
             </table>
+
+
         </div>
     </div>
 
@@ -170,6 +157,7 @@
 
 
     <script>
+        var start_time
 
         function pls_fun(input_id) {
             input = document.getElementById(input_id)
@@ -184,18 +172,6 @@
 
         }
 
-        function gather_data() {
-            setInterval(function () {
-                values = {}
-                $('input[name=counter]').each(((i, v) => {
-                    {#console.log(i,v.id, v.value)#}
-                    values[v.id] = v.value
-                }))
-
-            }, 30000)
-        }
-
-        gather_data()
 
         function update_status() {
             navigator.geolocation.getCurrentPosition((position) => {
@@ -206,9 +182,9 @@
                 const weather_api = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${long}&current=temperature_2m,wind_speed_10m,relative_humidity_2m`
                 $.get(weather_api, function (res) {
                     console.log(res)
-                    $('#temperature').val(`${res.current.temperature_2m} °C`)
-                    $('#wind_speed').val(`${res.current.wind_speed_10m} km/h`)
-                    $('#humidity').val(`${res.current.relative_humidity_2m} %`)
+                    $('#temperature').val(res.current.temperature_2m)
+                    $('#wind_speed').val(res.current.wind_speed_10m)
+                    $('#humidity').val(res.current.relative_humidity_2m)
                 }).fail(function (err) {
                     alert("Error in console")
                     console.log(err)
@@ -223,10 +199,111 @@
         }, 120000)
 
 
+        let mediaRecorder;
+        const stream = navigator.mediaDevices.getUserMedia({audio: true});
+        stream.then((r) => {
+            mediaRecorder = new MediaRecorder(r);
+            mediaRecorder.ondataavailable = async (event) => {
+                if (event.data.size > 0) {
+                    await sendAudioData(event.data);
+                }
+            };
+        })
+
+
+        async function startRecording() {
+            console.log("start rec")
+            start_time = Date.now()
+
+            setInterval(function () {
+                $('#seconds').html(`${Date.now() - start_time} ms`)
+            },500)
+
+            try {
+
+                mediaRecorder.start(9000);
+            } catch (error) {
+                alert(error)
+            }
+        }
+
+        async function sendAudioData(audioBlob) {
+            console.log("send")
+            values = []
+            values_temp = {}
+            $('input[name=counter]').each((i, v) => {
+                values_temp[v.id] = $(v).val()
+                values.push({
+                    "counter_type": v.id,
+                    "count": $(v).val()
+                })
+            })
+
+
+            req = {
+                latitude: $('#latitude').val(),
+                longitude: $('#longitude').val(),
+                allowed_speed: 0,
+                current_speed: 0,
+                temperature: $('#temperature').val(),
+                humidity: $('#humidity').val(),
+                "start_time": start_time,
+                "end_time": Date.now(),
+                counters: values,
+                wind_speed: $('#wind_speed').val(),
+            }
+
+            start_time = req.end_time
+
+            console.log(req)
+
+
+            let tbody = ` <tr>
+                <th> </th>
+                <th>${new Date(req.start_time * 1000)}  </th>
+                <th>${new Date(req.end_time * 1000)}</th>
+                <th>${req.latitude} , ${req.longitude}</th>
+                <th>${req.humidity}</th>
+                <th>${req.wind_speed}</th>
+                <th>${req.temperature}</th>
+              `
+
+
+            values.map((i, v) => {
+                console.log(i, v)
+                tbody += `<th> ${i.count} </th>`
+            })
+
+            tbody += "</tr>"
+
+            $('#row_tbud').append(tbody)
+
+        }
+
+
+        document.getElementById('run_exp').addEventListener('click', startRecording)
     </script>
 
-    <script src="https://unpkg.com/wavesurfer.js@7"></script>
 
-    <script src="https://unpkg.com/wavesurfer.js@7/dist/plugins/record.min.js"></script>
+
+    <script type="module">
+        import WaveSurfer from 'https://cdn.jsdelivr.net/npm/wavesurfer.js@7/dist/wavesurfer.esm.js'
+        import RecordPlugin from 'https://cdn.jsdelivr.net/npm/wavesurfer.js@7/dist/plugins/record.esm.js'
+
+        let wavesurfer
+        var record
+
+        wavesurfer = WaveSurfer.create({
+            container: '#mic',
+            waveColor: '#4F4A85',
+            progressColor: '#383351',
+        })
+        record = wavesurfer.registerPlugin(RecordPlugin.create({scrollingWaveform: false, renderRecordedAudio: false}))
+
+        record.startRecording()
+
+    </script>
+
+
 
 {% endblock %}

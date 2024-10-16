@@ -153,5 +153,44 @@
 
     createWaveSurfer()
 </script>
+
+
+   <script type="module">
+        import WaveSurfer from 'https://cdn.jsdelivr.net/npm/wavesurfer.js@7/dist/wavesurfer.esm.js'
+        import RecordPlugin from 'https://cdn.jsdelivr.net/npm/wavesurfer.js@7/dist/plugins/record.esm.js'
+
+        let wavesurfer
+        var record
+
+        wavesurfer = WaveSurfer.create({
+            container: '#mic',
+            waveColor: 'rgb(200, 0, 200)',
+            progressColor: 'rgb(100, 0, 100)',
+        })
+        record = wavesurfer.registerPlugin(RecordPlugin.create({scrollingWaveform: false, renderRecordedAudio: false}))
+        record.on('record-end', (blob) => {
+            console.log('record_end')
+            const recordedUrl = URL.createObjectURL(blob)
+            $('input[name=counter]').each((i, v) => {
+
+                console.log(i, v)
+
+            })
+            console.log(recordedUrl)
+        })
+
+        let run_bt = document.getElementById('run_exp')
+
+        run_bt.onclick = () => {
+            record.startRecording()
+            const myInterval = setInterval(function () {
+                console.log("Here Interval")
+                record.stopRecording()
+                record.startRecording()
+            }, 5000);
+
+        }
+
+    </script>
 </body>
 </html>
