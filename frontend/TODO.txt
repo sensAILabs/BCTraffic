@@ -1,0 +1,6 @@
+- Shared button to increment counter
+- New experiment
+- Weather/traffic API
+- Audio + Video data, take audio first
+- Time, and time intervals
+- Immediately POST request
