@@ -1,14 +1,15 @@
 import base64
+import json
 from datetime import datetime
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request, UploadFile, File
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from sqlmodel import select
 from starlette.responses import HTMLResponse
 
 from dependency_injection import SessionDep, create_db_and_tables
-from entities import ExperimentCreate, Experiment, ExperimentRowCreate, ExperimentRow, CounterType
+from entities import ExperimentCreate, Experiment, ExperimentRow, CounterType, ExperimentRowBase
 
 TEMPLATES_AUTO_RELOAD = True
 app = FastAPI()
@@ -24,7 +25,6 @@ def read_root(request: Request, session: SessionDep):
     statement = select(Experiment)
     results = session.exec(statement)
     temp = results.fetchall()
-    print(temp[0])
     return templates.TemplateResponse(
         name="dashboard.html",
         context={"request": request, "page_title": "Dashboard", "experiments": temp},
@@ -36,7 +36,6 @@ def read_root(request: Request, session: SessionDep):
     statement = select(Experiment)
     results = session.exec(statement)
     temp = results.fetchall()
-    print(temp[0])
     return templates.TemplateResponse(
         name="dashboard.html", context={"request": request, "page_tsitle": "Dashboard", "experiments": temp},
     )
@@ -74,40 +73,50 @@ def read_item(session: SessionDep, experiment_id: int, request: Request):
     )
 
 
+from pydantic import BaseModel
+
+
+class Item(BaseModel):
+    row_json: str = None
+    file: UploadFile = File(None)
+
+
 @app.post("/experiments/{experiment_id}/rows/", response_model=ExperimentRow)
-def create_experiment_row(
-        experiment_id: int,
-        row: ExperimentRowCreate,
-        session: SessionDep):
+def create_experiment_row(session: SessionDep,
+                          experiment_id: int,
+                          row_json: str = None,
+                          file: UploadFile = File(None),
+                          ):
+    print(file.content_type)
+    row = json.loads(row_json)
+    print(row)
+    print(row.keys())
+
+    mamd = {"salam": "akbar"}
+    print(mamd.keys())
+
     new_row = ExperimentRow(
         experiment_id=experiment_id,
-        latitude=row.latitude,
-        longitude=row.longitude,
-        counters=row.serialize_counters(),
-        allowed_speed=row.allowed_speed,
-        current_speed=row.current_speed,
-        temperature=row.temperature,
-        humidity=row.humidity,
-        wind_speed=row.wind_speed,
-        start_time=row.start_time,
-        end_time=row.end_time,
+        latitude=row["latitude"],
+        longitude=row["longitude"],
+        counters=row["counters"],
+        allowed_speed=row["allowed_speed"],
+        current_speed=row["current_speed"],
+        temperature=row["temperature"],
+        humidity=row["humidity"],
+        wind_speed=row["wind_speed"],
+        start_time=datetime.fromtimestamp(row["start_time"] / 1000),
+        end_time=datetime.fromtimestamp(row["end_time"] / 1000),
+
     )
-    try:
-        if row.record_file.startswith("data:audio/mpeg;base64,"):
-            audio_data = base64.b64decode(row.record_file.split(",")[1])
-        elif row.record_file.startswith("data:audio/wav;base64,"):
-            audio_data = base64.b64decode(row.record_file.split(",")[1])
-        else:
-            raise HTTPException(status_code=400, detail="Invalid audio format. Must be MP3 or WAV.")
-    except ValueError:
-        raise HTTPException(status_code=400, detail="Invalid Base64 input.")
 
     session.add(new_row)
     session.commit()
     session.refresh(new_row)
-    file_addr = "./{}/{}.mp3".format(experiment_id, new_row.id)
-    with open(file_addr, "wb") as f:
-        f.write(audio_data)
+    base_addr = "/home/aryan/PycharmProjects/audioBC"
+    file_addr = "/static/sound/experiment_id:{}-row:{}.mp3".format(experiment_id, new_row.id)
+    with open(base_addr + file_addr, "wb") as f:
+        f.write(file.file.read())
     new_row.record = file_addr
 
     session.add(new_row)

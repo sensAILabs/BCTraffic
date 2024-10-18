@@ -1,0 +1,170 @@
+{% extends "index.html" %}
+{% block body %}
+
+        <div class="row">
+            <div class="col-12">
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <i class="fas fa-chart-bar me-1"></i>
+                        Record time
+                    </div>
+                    <div class="card-body">
+                        <canvas id="myBarChart" width="100%" height="20"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    <div class="card mb-4">
+        <div class="card-header">
+            <div class="row">
+                <div class="col float-start">
+                    <i class="fas fa-table me-1"></i>
+                    Experiments
+                </div>
+                <div class="col float-end">
+                    <!-- Button trigger modal -->
+
+                    <button class="btn btn-danger float-end" data-bs-toggle="modal" data-bs-target="#exampleModal"> New
+                        Experiment
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div class="card-body">
+            <table id="datatablesSimple">
+                <thead>
+                <tr>
+                    <th> ID</th>
+                    <th> Name</th>
+                    <th>Researcher Name</th>
+                    <th>Sampling Rate</th>
+                    <th>Sender Type</th>
+                    <th>Create At</th>
+                                        <th>Info</th>
+
+                </tr>
+                </thead>
+                <tfoot>
+                <tr>
+                    <th> ID</th>
+                    <th> Name</th>
+                    <th>Researcher Name</th>
+                    <th>Sampling Rate</th>
+                    <th>Sender Type</th>
+                    <th>Create At</th>
+                    <th>Info</th>
+                </tr>
+                </tfoot>
+                <tbody>
+
+                {% for experiment in experiments %}
+                    <tr>
+                        <td>{{ experiment.id }}</td>
+                        <td>{{ experiment.experiment_name }}</td>
+                        <td>{{ experiment.creator_name }}</td>
+                        <td>{{ experiment.sampling_rate }}</td>
+                        <td>{{ experiment.sender_type }}</td>
+                        <td>{{ experiment.create_at }}</td>
+                        <td><a href="/experiment/{{ experiment.id }}"> <i class="fa fa-info-circle"></i> </a></td>
+
+                    </tr>
+                {% endfor %}
+
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+
+
+
+
+    <div class="modal fade" id="exampleModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h1 class="modal-title fs-5" id="exampleModalLabel">New Experiment</h1>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="new_exp_form">
+
+                        <div class="mb-3">
+                            <label for="exampleInputEmail1" class="form-label">Experiment Name</label>
+                            <input type="text" class="form-control" name="experiment_name" id="exampleInputEmail1"
+                                   aria-describedby="emailHelp">
+                        </div>
+                        <div class="mb-3">
+                            <label for="exampleInputPassword1" class="form-label">Creator Name</label>
+                            <input type="text" name="creator_name" class="form-control" id="exampleInputPassword1">
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="sampling_rate_id" class="form-label">Sampling Rate (in sec)</label>
+                            <input type="number" name="sampling_rate" class="form-control" id="sampling_rate_id">
+                        </div>
+
+
+                        <div class="mb-3">
+                            <label for="sender_rateInput" class="form-label">Sender Type</label>
+                            <select id="sender_rateInput" name="sender_type" class="form-select"
+                                    aria-label="Default select example">
+                                <option value="hardware">Fabricated Microphone</option>
+
+                                <option value="pc">PC</option>
+                                <option value="phone">Phone</option>
+                            </select></div>
+
+
+                        <div class="mb-3">
+                            <label for="exampleFormControlTextarea1" class="form-label">Comment</label>
+                            <textarea name="comment" class="form-control" id="exampleFormControlTextarea1"
+                                      rows="3"></textarea>
+                        </div>
+
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button onclick="new_exp()" type="button" class="btn btn-primary">Submit</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+{% endblock %}
+{% block addonJs %}
+
+    <script>
+
+        function new_exp() {
+
+            console.log()
+
+            form_vals = $('#new_exp_form').serializeArray()
+            req_val = {}
+            form_vals.forEach(((i) => {
+                req_val[i.name] = i.value
+            }))
+            console.log(JSON.stringify(req_val))
+
+
+            $.ajax({
+                url: "/experiment/",
+                contentType: 'application/json',
+                type: "Post",
+                data: JSON.stringify(req_val),
+                success: function (result) {
+                    console.log(result)
+                    window.location.href = `/experiment/${result.id}`;
+                },
+                error: function (err) {
+                    console.log(err)
+                    alert("Error in Console")
+                }
+            });
+        }
+
+
+    </script>
+{% endblock %}

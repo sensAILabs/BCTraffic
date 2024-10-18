@@ -40,7 +40,7 @@
             <div class="col float-end">
 
                 <button class="btn btn-success" id="run_exp"> Run Experiment</button>
-                <div id="seconds"> </div>
+                <div id="seconds"></div>
 
             </div>
         </div>
@@ -69,34 +69,23 @@
                                                                                           id="wind_speed"></div>
 
 
-
             </div>
             <div id="mic">
 
             </div>
             <div class="row">
 
+  {% for i in counters %}
+                <div class="col-2 counter-control">
+                    <label for="{{ i }}">{{ i }}</label>
+                    <div class="input-group">
+                        <button onclick="min_fun('{{ i }}')" class="btn btn-danger">-</button>
+                        <input name="counter" id="{{ i }}" class="form-control" value="0" type="number">
+                        <button onclick="pls_fun('{{ i }}')" class="btn btn-success">+</button>
+                    </div>
+                </div>
+            {% endfor %}
 
-                {% for i in counters %}
-                    <th>
-
-
-                        <div class="row mt-2" style="width: 16.6% ; margin-right: 5px ">
-                            <label for="{{ i }}">{{ i }}</label>
-                            <button onclick="min_fun(`{{ i }}`)" class="btn btn-danger"
-                                    style="width: 40% !important;">-
-                            </button>
-                            <input name="counter" id="{{ i }}" class="form-control" style="width: 20% !important;"
-                                   value="0"
-                                   type="number">
-                            <button onclick="pls_fun(`{{ i }}`)" class=" btn btn-success"
-                                    style="width: 40% !important;">+
-                            </button>
-
-                        </div>
-
-                    </th>
-                {% endfor %}
 
 
             </div>
@@ -124,23 +113,48 @@
             <table class="table">
                 <thead>
                 <tr>
-                    <th scope="col">Id</th>
-                    <th scope="col">Start Time</th>
-                    <th scope="col">End Time</th>
-                    <th scope="col">Location</th>
-                    <th scope="col">Humidity</th>
-                    <th scope="col">Wind Speed</th>
-                    <th scope="col">Temperature</th>
+                    <th scope="col">id</th>
+                    <th scope="col">start_time</th>
+                    <th scope="col">end_time</th>
+                    <th scope="col">location</th>
+                    <th scope="col">humidity</th>
+                    <th scope="col">wind_speed</th>
+                    <th scope="col">temperature</th>
 
                     {% for i in counters %}
                         <th scope="col">
                             {{ i }}
                         </th>
                     {% endfor %}
+                    <th scope="col">File</th>
+
                 </tr>
                 </thead>
-                <tbody id="row_tbud">
+                <tbody id="row_tbud" class="overflow-scroll">
 
+                {% for row in experiment.rows %}
+
+                    <tr  class="overflow-scroll">
+                        <th>{{ row.id }}</th>
+                        <th class="date_inner">{{ row.start_time }}</th>
+                        <th class="date_inner">{{ row.end_time }}</th>
+                        <th>{{ row.latitude }} , {{ row.longitude }}</th>
+                        <th>{{ row.humidity }}</th>
+                        <th>{{ row.wind_speed }}</th>
+                        <th>{{ row.temperature }}</th>
+                        {% for counter in row.counters %}
+
+                            <th> {{ counter.count }}</th>
+
+                        {% endfor %}
+
+                        <th><a id="downloadButton" href="{{ row.record }}" download="{{ row.record }}.mp3">
+                            <i class="fa-solid fa-circle-play"></i>
+                        </a></th>
+                    </tr>
+
+
+                {% endfor %}
                 </tbody>
             </table>
 
@@ -157,6 +171,9 @@
 
 
     <script>
+
+
+
         var start_time
 
         function pls_fun(input_id) {
@@ -174,7 +191,9 @@
 
 
         function update_status() {
+            console.log("Location requested")
             navigator.geolocation.getCurrentPosition((position) => {
+                console.log("Location received")
                 let lat = position.coords.latitude.toFixed(2);
                 let long = position.coords.longitude.toFixed(2);
                 $('#latitude').val(lat)
@@ -198,70 +217,82 @@
             update_status();
         }, 120000)
 
-
         let mediaRecorder;
-        const stream = navigator.mediaDevices.getUserMedia({audio: true});
-        stream.then((r) => {
-            mediaRecorder = new MediaRecorder(r);
-            mediaRecorder.ondataavailable = async (event) => {
-                if (event.data.size > 0) {
-                    await sendAudioData(event.data);
-                }
-            };
-        })
+        function reset_inputs() {
+                 $('input[name=counter]').each((i, v) => {
+                            $(v).val(0)
+                        })
 
-
-        async function startRecording() {
-            console.log("start rec")
-            start_time = Date.now()
-
-            setInterval(function () {
-                $('#seconds').html(`${Date.now() - start_time} ms`)
-            },500)
+        }
+        async function SetupRecorder() {
 
             try {
+                // Request access to the microphone
+                const stream = await navigator.mediaDevices.getUserMedia({audio: true});
 
-                mediaRecorder.start(9000);
-            } catch (error) {
-                alert(error)
-            }
-        }
+                // Create a MediaRecorder instance
+                mediaRecorder = new MediaRecorder(stream);
 
-        async function sendAudioData(audioBlob) {
-            console.log("send")
-            values = []
-            values_temp = {}
-            $('input[name=counter]').each((i, v) => {
-                values_temp[v.id] = $(v).val()
-                values.push({
-                    "counter_type": v.id,
-                    "count": $(v).val()
-                })
-            })
+                // Event handler for when audio data is available
+                mediaRecorder.ondataavailable = async (event) => {
+                    // Create a Blob from the recorded audio data
+                    const audioBlob = new Blob([event.data], {type: 'audio/webm'});
+                    const file = new File([audioBlob], 'recording.webm', {type: 'audio/sa'});
 
+                    // Send the recorded chunk to the server
+                    await async function (fileData) {
+                        const formData = new FormData();
 
-            req = {
-                latitude: $('#latitude').val(),
-                longitude: $('#longitude').val(),
-                allowed_speed: 0,
-                current_speed: 0,
-                temperature: $('#temperature').val(),
-                humidity: $('#humidity').val(),
-                "start_time": start_time,
-                "end_time": Date.now(),
-                counters: values,
-                wind_speed: $('#wind_speed').val(),
-            }
+                        // Add JSON data as a string
 
-            start_time = req.end_time
-
-            console.log(req)
+                        console.log("send")
+                        values = []
+                        values_temp = {}
+                        $('input[name=counter]').each((i, v) => {
+                            values_temp[v.id] = $(v).val()
+                            values.push({
+                                "counter_type": v.id,
+                                "count": $(v).val()
+                            })
+                        })
+                        reset_inputs()
 
 
-            let tbody = ` <tr>
-                <th> </th>
-                <th>${new Date(req.start_time * 1000)}  </th>
-                <th>${new Date(req.end_time * 1000)}</th>
+                        req = {
+                            latitude: $('#latitude').val(),
+                            longitude: $('#longitude').val(),
+                            allowed_speed: 0,
+                            current_speed: 0,
+                            temperature: $('#temperature').val(),
+                            humidity: $('#humidity').val(),
+                            "start_time": start_time,
+                            "end_time": Date.now(),
+                            counters: values,
+                            wind_speed: $('#wind_speed').val(),
+                        }
+
+                        start_time = req.end_time
+
+                        console.log(req)
+
+                        {#formData.append('row_json', JSON.stringify(req));#}
+
+                        // Add the recorded audio file
+                        formData.append('file', fileData);
+
+                        try {
+                            const response = await fetch(`/experiments/{{ experiment.id }}/rows/?row_json=${JSON.stringify(req)}`, {
+                                method: 'POST',
+                                body: formData,
+                            });
+
+                            if (response.ok) {
+                                const result = await response.json();
+
+                                let tbody = ` <tr>
+                <th> ${result.id}</th>
+                <th>${new Date(req.start_time ).toLocaleString()}  </th>
+                <th>${new Date(req.end_time ).toLocaleString()}</th>
                 <th>${req.latitude} , ${req.longitude}</th>
                 <th>${req.humidity}</th>
                 <th>${req.wind_speed}</th>
@@ -269,19 +300,58 @@
               `
 
 
-            values.map((i, v) => {
-                console.log(i, v)
-                tbody += `<th> ${i.count} </th>`
-            })
+                                values.map((i, v) => {
 
-            tbody += "</tr>"
+                                    tbody += `<th> ${i.count} </th>`
+                                })
+                                tbody += `   <th> <a id="downloadButton" href="${result.record}" download="${result.record}.mp3">
+        <i class="fa-solid fa-circle-play"></i>
+    </a></th></tr>`
 
-            $('#row_tbud').append(tbody)
+                                $('#row_tbud').append(tbody)
+                                console.log('Experiment row created successfully:', result);
+                            } else {
+                                console.error();
+                                alert(`Failed to create experiment row:', ${response.statusText}`);
+                            }
+                        } catch (error) {
+                            alert("Error in")
+                            console.error('Error during fetch:', error);
+                        }
+                    }(file);
+                };
+
+
+            } catch (error) {
+                console.error('Error accessing microphone:', error);
+            }
 
         }
 
 
+        async function startRecording() {
+
+            console.log("start rec")
+            start_time = Date.now()
+
+            setInterval(function () {
+                $('#seconds').html(`${Date.now() - start_time} ms`)
+            }, 1000)
+
+            try {
+                const rate = {{  experiment.sampling_rate }} * 1000
+                console.log(rate)
+                mediaRecorder.start(rate);
+                console.log(`Recording started, sending data every ${rate} MS ...`);
+
+            } catch (error) {
+                alert(error)
+            }
+        }
+
+
         document.getElementById('run_exp').addEventListener('click', startRecording)
+        SetupRecorder()
     </script>
 
 

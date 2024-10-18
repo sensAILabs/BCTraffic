@@ -4,7 +4,8 @@ from enum import Enum
 from typing import List, Optional, Any
 
 from pydantic import BaseModel, constr
-from sqlmodel import Field, SQLModel, Relationship, Column, JSON
+from pydantic_core.core_schema import DatetimeSchema
+from sqlmodel import Field, SQLModel, Relationship, Column, JSON, DATETIME
 
 
 class SenderType(str, Enum):
@@ -20,10 +21,10 @@ class CounterType(str, Enum):
     TRUCK = "truck"
     BUS = "bus"
     SMALL_TRUCK = "small_truck"
+
     @staticmethod
     def list():
         return list(map(lambda c: c.value, CounterType))
-
 
 
 class Counter(BaseModel):
@@ -58,8 +59,8 @@ class ExperimentRowBase(SQLModel):
     temperature: int
     humidity: int
     wind_speed: int
-    start_time: int
-    end_time: int
+    start_time: datetime
+    end_time: datetime
     counters: list[Counter] | str = Field(sa_column=Column(JSON))
 
     def serialize_counters(self):
@@ -81,12 +82,7 @@ class ExperimentRow(ExperimentRowBase, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     experiment_id: int = Field(foreign_key="experiment.id")
     experiment: "Experiment" = Relationship(back_populates="rows")
-    record: str
-
-
-class ExperimentRowCreate(ExperimentRowBase):
-    record_file: constr(strict=True)
-    pass
+    record: str | None
 
 
 class RecordedObject(SQLModel):
