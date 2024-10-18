@@ -3,9 +3,44 @@ import { SettingsObj } from "../types/SettingsObj";
 
 function get_data(): any {}
 
-function create_experiment_post(settings: SettingsObj): any {}
+async function create_experiment_post(settings: SettingsObj): Promise<any> {
+  fetch("http://localhost:5000/experiment", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(settings),
+  })
+    .then((response) => {
+      if (!response.ok) {
+        throw new Error("Create experiment failed");
+      }
+      return response.json();
+    })
+    .then((data) => console.log("Success:", data))
+    .catch((error) => console.error("Error:", error));
+}
 
-function add_experiment_row_post(data: DataLogEntry): any {}
+async function add_experiment_row_post(
+  data: DataLogEntry,
+  row: number
+): Promise<any> {
+  fetch(`http://localhost:5000/experiment/${row}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(data),
+  })
+    .then((response) => {
+      if (!response.ok) {
+        throw new Error("Add experiment row failed");
+      }
+      return response.json();
+    })
+    .then((data) => console.log("Success:", data))
+    .catch((error) => console.error("Error:", error));
+}
 
 // Get for root
 
