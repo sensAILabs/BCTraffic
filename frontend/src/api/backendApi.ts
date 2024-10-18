@@ -1,4 +1,11 @@
-export {};
+import { DataLogEntry } from "../types/DataLogEntry";
+import { SettingsObj } from "../types/SettingsObj";
+
+function get_data(): any {}
+
+function create_experiment_post(settings: SettingsObj): any {}
+
+function add_experiment_row_post(data: DataLogEntry): any {}
 
 // Get for root
 
