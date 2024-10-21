@@ -5,6 +5,7 @@ from datetime import datetime
 from fastapi import FastAPI, HTTPException, Request, UploadFile, File
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from sqlalchemy import text
 from sqlmodel import select
 from starlette.responses import HTMLResponse
 
@@ -50,8 +51,8 @@ def read_item(session: SessionDep, experiment: ExperimentCreate):
     new_experiment = Experiment(
         experiment_name=experiment.experiment_name,
         creator_name=experiment.creator_name,
-        create_at=datetime.utcnow(),
-        update_at=datetime.utcnow(),
+        create_at=datetime.now(),
+        update_at=datetime.now(),
         sampling_rate=experiment.sampling_rate,
         sender_type=experiment.sender_type,
         comment=experiment.comment,
@@ -79,6 +80,31 @@ from pydantic import BaseModel
 class Item(BaseModel):
     row_json: str = None
     file: UploadFile = File(None)
+
+
+class Duration(BaseModel):
+    date: str
+    duration_second: int
+
+
+@app.get("/experiments/all_duration")
+def date_duration(session: SessionDep, request: Request):
+    date_keys = {}
+
+    sql = select(ExperimentRow.start_time, ExperimentRow.end_time)
+    results = session.exec(sql).fetchall()
+
+    for re in results:
+        temp1 = re[0]
+        temp2 = re[1]
+        temp3 = temp2 - temp1
+        key = "{}-{}-{}".format(temp1.date().year, temp1.date().month, temp1.date().day)
+        if key in date_keys:
+            date_keys[key] += temp3.total_seconds()
+        else:
+            date_keys[key] = temp3.total_seconds()
+
+    return date_keys
 
 
 @app.post("/experiments/{experiment_id}/rows/", response_model=ExperimentRow)
