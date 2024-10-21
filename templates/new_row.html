@@ -1,4 +1,11 @@
 {% extends "index.html" %}
+
+{% block head %}
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+          integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+          crossorigin=""/>
+{% endblock %}
+
 {% block body %}
     <div class="card mb-4">
         <div class="card-header">
@@ -46,27 +53,39 @@
         </div>
         <div class="card-body ">
             <div class="row mb-2">
-                <div class="col-5"><label for="latitude"> latitude</label><input class="form-control"
+                <div class="col-2"><label for="latitude"> latitude</label><input class="form-control"
                                                                                  placeholder="in progress ..."
                                                                                  id="latitude"></div>
-                <div class="col-5"><label for="longitude"> longitude</label><input class="form-control"
+                <div class="col-2"><label for="longitude"> longitude</label><input class="form-control"
                                                                                    placeholder="in progress ..."
                                                                                    id="longitude"></div>
-                <div class="col-5"><label for="allowed_speed"> allowed_speed</label><input class="form-control"
-                                                                                           placeholder="in progress ..."
-                                                                                           id="allowed_speed"></div>
-                <div class="col-5"><label for="current_speed"> current_speed</label><input class="form-control"
-                                                                                           placeholder="in progress ..."
-                                                                                           id="current_speed"></div>
-                <div class="col-5"><label for="temperature"> temperature °C</label><input class="form-control"
+
+                <div class="col-2"><label for="temperature"> temperature °C</label><input class="form-control"
                                                                                           placeholder="in progress ..."
                                                                                           id="temperature"></div>
-                <div class="col-5"><label for="humidity"> humidity % </label><input class="form-control"
+                <div class="col-2"><label for="humidity"> humidity % </label><input class="form-control"
                                                                                     placeholder="in progress ..."
                                                                                     id="humidity"></div>
-                <div class="col-5"><label for="wind_speed"> wind_speed km/h</label><input class="form-control"
+                <div class="col-2"><label for="wind_speed"> wind_speed km/h</label><input class="form-control"
                                                                                           placeholder="in progress ..."
                                                                                           id="wind_speed"></div>
+
+                <div class="col-12">
+
+                    <div id="map" class="mt-2 mb-2 p-3" style="height: 400px"></div>
+                </div>
+
+                <div class="col-4"><label for="allowed_speed"> street allowed max speed </label><input
+                        class="form-control"
+                        placeholder="in progress ..."
+                        id="allowed_speed"></div>
+                <div class="col-4"><label for="current_speed"> current_speed</label><input class="form-control"
+                                                                                           placeholder="in progress ..."
+                                                                                           id="current_speed"></div>
+                <div class="col-4"><label for="traffic_condition"> traffic_condition</label><input class="form-control"
+                                                                                                   placeholder="in progress ..."
+                                                                                                   id="traffic_condition">
+                </div>
 
 
             </div>
@@ -75,17 +94,16 @@
             </div>
             <div class="row">
 
-  {% for i in counters %}
-                <div class="col-2 counter-control">
-                    <label for="{{ i }}">{{ i }}</label>
-                    <div class="input-group">
-                        <button onclick="min_fun('{{ i }}')" class="btn btn-danger">-</button>
-                        <input name="counter" id="{{ i }}" class="form-control" value="0" type="number">
-                        <button onclick="pls_fun('{{ i }}')" class="btn btn-success">+</button>
+                {% for i in counters %}
+                    <div class="col-2 counter-control">
+                        <label for="{{ i }}">{{ i }}</label>
+                        <div class="input-group">
+                            <button onclick="min_fun('{{ i }}')" class="btn btn-danger">-</button>
+                            <input name="counter" id="{{ i }}" class="form-control" value="0" type="number">
+                            <button onclick="pls_fun('{{ i }}')" class="btn btn-success">+</button>
+                        </div>
                     </div>
-                </div>
-            {% endfor %}
-
+                {% endfor %}
 
 
             </div>
@@ -120,6 +138,7 @@
                     <th scope="col">humidity</th>
                     <th scope="col">wind_speed</th>
                     <th scope="col">temperature</th>
+                    <th scope="col">traffic</th>
 
                     {% for i in counters %}
                         <th scope="col">
@@ -134,7 +153,7 @@
 
                 {% for row in experiment.rows %}
 
-                    <tr  class="overflow-scroll">
+                    <tr class="overflow-scroll">
                         <th>{{ row.id }}</th>
                         <th class="date_inner">{{ row.start_time }}</th>
                         <th class="date_inner">{{ row.end_time }}</th>
@@ -142,6 +161,7 @@
                         <th>{{ row.humidity }}</th>
                         <th>{{ row.wind_speed }}</th>
                         <th>{{ row.temperature }}</th>
+                        <th>{{ row.allowed_speed }} / {{ row.current_speed }}</th>
                         {% for counter in row.counters %}
 
                             <th> {{ counter.count }}</th>
@@ -168,13 +188,24 @@
 
 
 {% block addonJs %}
-
+    <!-- Make sure you put this AFTER Leaflet's CSS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+            integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+            crossorigin=""></script>
 
     <script>
 
-
-
+        let custom_location = false
+        let custom_location_geo = {lat: 0, lng: 0}
         var start_time
+        let tom_tom_res = null
+
+        let map = L.map('map').setView([0, 0], 13);
+        const polyline = L.polyline([[0, 0]], {
+            color: 'blue', // Line color
+            weight: 4,     // Line thickness
+            opacity: 0.7,  // Line opacity
+        }).addTo(map);
 
         function pls_fun(input_id) {
             input = document.getElementById(input_id)
@@ -191,26 +222,135 @@
 
 
         function update_status() {
-            console.log("Location requested")
-            navigator.geolocation.getCurrentPosition((position) => {
-                console.log("Location received")
-                let lat = position.coords.latitude.toFixed(2);
-                let long = position.coords.longitude.toFixed(2);
+            console.log("Start Update status")
+
+            let lat = 0;
+            let long = 0;
+
+            function setup_newloc(lat, long) {
+                console.log("setup_newloc", lat, long)
                 $('#latitude').val(lat)
                 $('#longitude').val(long)
                 const weather_api = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${long}&current=temperature_2m,wind_speed_10m,relative_humidity_2m`
                 $.get(weather_api, function (res) {
-                    console.log(res)
+                    console.log("weather API ", res)
                     $('#temperature').val(res.current.temperature_2m)
                     $('#wind_speed').val(res.current.wind_speed_10m)
                     $('#humidity').val(res.current.relative_humidity_2m)
+
                 }).fail(function (err) {
                     alert("Error in console")
                     console.log(err)
                 })
-                console.log("status updated")
-            });
+                sendLocationToTomTom(lat, long)
+
+            }
+
+            if (custom_location) {
+                console.log("update from custom location: ", custom_location_geo)
+                lat = custom_location_geo.lat
+                long = custom_location_geo.lng
+                setup_newloc(lat, long)
+            } else {
+                navigator.geolocation.getCurrentPosition((position) => {
+                    console.log("Location received")
+                    draw_map(position.coords.latitude, position.coords.longitude)
+                    setup_newloc(position.coords.latitude, position.coords.longitude)
+                });
+
+            }
+
         }
+
+        function sendLocationToTomTom(lat, lon) {
+            console.log("Send to tom tom")
+
+            {#const TOMTOM_API_KEY = "dev"#}
+            const TOMTOM_API_KEY = "AwkSs5778iA0AuuIXYgT9ZyILC6iLGpG"
+            // Construct TomTom Traffic Flow API URL
+            const apiUrl = `https://api.tomtom.com/traffic/services/4/flowSegmentData/absolute/${map.getZoom()}/json?point=${lat},${lon}&key=${TOMTOM_API_KEY}`;
+            console.log("Request: ", apiUrl)
+            fetch(apiUrl)
+                .then(response => {
+                    if (!response.ok) {
+                        alert("Error in console")
+                        throw new Error('Network response was not ok ' + response.statusText);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    $('#current_speed').val(data.flowSegmentData.currentSpeed)
+                    $('#allowed_speed').val(data.flowSegmentData.freeFlowSpeed)
+                    $('#traffic_condition').val(analyzeTraffic(data))
+                    latLngs = []
+                    for (let i = 0; i < data.flowSegmentData.coordinates.coordinate.length; i++) {
+                        latLngs.push([data.flowSegmentData.coordinates.coordinate[i].latitude, data.flowSegmentData.coordinates.coordinate[i].longitude])
+                    }
+                    polyline.setLatLngs(latLngs)
+                    // Display traffic level in the page or as desired
+                })
+                .catch(error => {
+                    alert("Error in console")
+                    console.error('There was a problem with the fetch operation:', error);
+                });
+        }
+
+        function analyzeTraffic(data) {
+            // Extract the 'currentSpeed' and 'freeFlowSpeed' from the response
+            const currentSpeed = data.flowSegmentData.currentSpeed;
+            const freeFlowSpeed = data.flowSegmentData.freeFlowSpeed;
+
+            // Calculate the speed ratio to determine traffic condition
+            const speedRatio = currentSpeed / freeFlowSpeed;
+            // Define thresholds for traffic levels (you may adjust these)
+            if (speedRatio < 0.4) {
+
+                polyline.setStyle({
+                    color: 'red'
+                });
+                return 'heavy'; // Current speed is less than 40% of the free-flow speed
+            } else if (speedRatio < 0.7) {
+                polyline.setStyle({
+                    color: 'yellow'
+                });
+                return 'half-heavy'; // Current speed is between 40% and 70% of free-flow speed
+            } else {
+                polyline.setStyle({
+                    color: 'green'
+                });
+                return 'normal'; // Current speed is above 70% of free-flow speed
+            }
+        }
+
+        let userMarker = null;
+
+        function draw_map(lat, lng) {
+            if (userMarker == null) {
+                map.setView([lat, lng], 13)
+
+                L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                }).addTo(map);
+
+
+                userMarker = L.marker([lat, lng], {draggable: true}).addTo(map)
+                    .bindPopup("Drag me to adjust your location!")
+                    .openPopup();
+
+
+                // Event listener for when the marker is dragged
+                userMarker.on('dragend', function (event) {
+
+                    console.log(event.target.getLatLng())
+                    const position = event.target.getLatLng();
+                    custom_location_geo.lat = position.lat
+                    custom_location_geo.lng = position.lng
+                    custom_location = true
+                    update_status()
+                });
+            }
+        }
+
 
         update_status()
         setInterval(function () {
@@ -218,122 +358,113 @@
         }, 120000)
 
         let mediaRecorder;
+
         function reset_inputs() {
-                 $('input[name=counter]').each((i, v) => {
-                            $(v).val(0)
-                        })
+            $('input[name=counter]').each((i, v) => {
+                $(v).val(0)
+            })
 
         }
-        async function SetupRecorder() {
 
-            try {
-                // Request access to the microphone
-                const stream = await navigator.mediaDevices.getUserMedia({audio: true});
-
-                // Create a MediaRecorder instance
-                mediaRecorder = new MediaRecorder(stream);
-
-                // Event handler for when audio data is available
-                mediaRecorder.ondataavailable = async (event) => {
-                    // Create a Blob from the recorded audio data
-                    const audioBlob = new Blob([event.data], {type: 'audio/webm'});
-                    const file = new File([audioBlob], 'recording.webm', {type: 'audio/sa'});
-
-                    // Send the recorded chunk to the server
-                    await async function (fileData) {
-                        const formData = new FormData();
-
-                        // Add JSON data as a string
-
-                        console.log("send")
-                        values = []
-                        values_temp = {}
-                        $('input[name=counter]').each((i, v) => {
-                            values_temp[v.id] = $(v).val()
-                            values.push({
-                                "counter_type": v.id,
-                                "count": $(v).val()
-                            })
-                        })
-                        reset_inputs()
+        let sound_cunk = []
 
 
-                        req = {
-                            latitude: $('#latitude').val(),
-                            longitude: $('#longitude').val(),
-                            allowed_speed: 0,
-                            current_speed: 0,
-                            temperature: $('#temperature').val(),
-                            humidity: $('#humidity').val(),
-                            "start_time": start_time,
-                            "end_time": Date.now(),
-                            counters: values,
-                            wind_speed: $('#wind_speed').val(),
-                        }
+        async function capture_and_sand(data_to) {
 
-                        start_time = req.end_time
+            const file = new Blob(data_to, {type: mediaRecorder.mimeType});
 
-                        console.log(req)
 
-                        {#formData.append('row_json', JSON.stringify(req));#}
+            // Send the recorded chunk to the server
+            await async function () {
+                const formData = new FormData();
 
-                        // Add the recorded audio file
-                        formData.append('file', fileData);
+                // Add JSON data as a string
 
-                        try {
-                            const response = await fetch(`/experiments/{{ experiment.id }}/rows/?row_json=${JSON.stringify(req)}`, {
-                                method: 'POST',
-                                body: formData,
-                            });
+                console.log("send")
+                values = []
+                values_temp = {}
+                $('input[name=counter]').each((i, v) => {
+                    values_temp[v.id] = $(v).val()
+                    values.push({
+                        "counter_type": v.id,
+                        "count": $(v).val()
+                    })
+                })
+                reset_inputs()
 
-                            if (response.ok) {
-                                const result = await response.json();
 
-                                let tbody = ` <tr>
+                req = {
+                    latitude: $('#latitude').val(),
+                    longitude: $('#longitude').val(),
+                    {#allowed_speed: 0,#}
+                    allowed_speed: $('#allowed_speed').val(),
+                    current_speed: $('#current_speed').val(),
+                    {#current_speed: 0,#}
+                    temperature: $('#temperature').val(),
+                    humidity: $('#humidity').val(),
+                    "start_time": start_time,
+                    "end_time": Date.now(),
+                    counters: values,
+                    wind_speed: $('#wind_speed').val(),
+                }
+
+                start_time = req.end_time
+
+                console.log(req)
+
+                {#formData.append('row_json', JSON.stringify(req));#}
+
+                // Add the recorded audio file
+                console.log(file)
+                formData.append('file', file, 'audio.ogg');
+
+                try {
+                    const response = await fetch(`/experiments/{{ experiment.id }}/rows/?row_json=${JSON.stringify(req)}`, {
+                        method: 'POST',
+                        body: formData,
+                    });
+
+                    if (response.ok) {
+                        const result = await response.json();
+
+                        let tbody = ` <tr>
                 <th> ${result.id}</th>
-                <th>${new Date(req.start_time ).toLocaleString()}  </th>
-                <th>${new Date(req.end_time ).toLocaleString()}</th>
+                <th>${new Date(req.start_time).toLocaleString()}  </th>
+                <th>${new Date(req.end_time).toLocaleString()}</th>
                 <th>${req.latitude} , ${req.longitude}</th>
                 <th>${req.humidity}</th>
                 <th>${req.wind_speed}</th>
                 <th>${req.temperature}</th>
+                <th>${req.allowed_speed} / ${req.current_speed} </th>
               `
 
 
-                                values.map((i, v) => {
+                        values.map((i, v) => {
 
-                                    tbody += `<th> ${i.count} </th>`
-                                })
-                                tbody += `   <th> <a id="downloadButton" href="${result.record}" download="${result.record}.mp3">
+                            tbody += `<th> ${i.count} </th>`
+                        })
+                        tbody += `   <th> <a id="downloadButton" href="${result.record}" download="${result.record}.mp3">
         <i class="fa-solid fa-circle-play"></i>
     </a></th></tr>`
 
-                                $('#row_tbud').append(tbody)
-                                console.log('Experiment row created successfully:', result);
-                            } else {
-                                console.error();
-                                alert(`Failed to create experiment row:', ${response.statusText}`);
-                            }
-                        } catch (error) {
-                            alert("Error in")
-                            console.error('Error during fetch:', error);
-                        }
-                    }(file);
-                };
-
-
-            } catch (error) {
-                console.error('Error accessing microphone:', error);
-            }
-
+                        $('#row_tbud').append(tbody)
+                        console.log('Experiment row created successfully:', result);
+                    } else {
+                        console.error();
+                        alert(`Failed to create experiment row:', ${response.statusText}`);
+                    }
+                } catch (error) {
+                    alert("Error in")
+                    console.error('Error during fetch:', error);
+                }
+            }();
         }
-
 
         async function startRecording() {
 
             console.log("start rec")
             start_time = Date.now()
-
+            sound_cunk.length = 0
             setInterval(function () {
                 $('#seconds').html(`${Date.now() - start_time} ms`)
             }, 1000)
@@ -341,7 +472,36 @@
             try {
                 const rate = {{  experiment.sampling_rate }} * 1000
                 console.log(rate)
-                mediaRecorder.start(rate);
+
+
+                try {
+                    // Request access to the microphone
+                    const stream = await navigator.mediaDevices.getUserMedia({audio: true});
+                    // Create a MediaRecorder instance
+                    mediaRecorder = new MediaRecorder(stream);
+
+                    // Event handler for when audio data is available
+                    mediaRecorder.start();
+
+                    mediaRecorder.ondataavailable = event => {
+                        console.log(event)
+                        console.log("ondataavailable")
+                        capture_and_sand([event.data])
+
+                    };
+
+
+                } catch (error) {
+                    console.error('Error accessing microphone:', error);
+                }
+                setInterval(function () {
+                        mediaRecorder.stop()
+                        mediaRecorder.start()
+
+
+                    }
+                    , 3000)
+
                 console.log(`Recording started, sending data every ${rate} MS ...`);
 
             } catch (error) {
@@ -351,7 +511,7 @@
 
 
         document.getElementById('run_exp').addEventListener('click', startRecording)
-        SetupRecorder()
+
     </script>
 
 
@@ -366,7 +526,8 @@
         wavesurfer = WaveSurfer.create({
             container: '#mic',
             waveColor: '#4F4A85',
-            progressColor: '#383351',
+            progressColor: '#b1add6',
+            splitChannels: true
         })
         record = wavesurfer.registerPlugin(RecordPlugin.create({scrollingWaveform: false, renderRecordedAudio: false}))
 

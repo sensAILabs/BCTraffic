@@ -82,12 +82,13 @@ class Item(BaseModel):
 
 
 @app.post("/experiments/{experiment_id}/rows/", response_model=ExperimentRow)
-def create_experiment_row(session: SessionDep,
-                          experiment_id: int,
-                          row_json: str = None,
-                          file: UploadFile = File(None),
-                          ):
-    print(file.content_type)
+async def create_experiment_row(session: SessionDep,
+                                experiment_id: int,
+                                row_json: str = None,
+                                file: UploadFile = File(...),
+                                ):
+    print(file)
+    print("-------------------")
     row = json.loads(row_json)
     print(row)
     print(row.keys())
@@ -114,12 +115,17 @@ def create_experiment_row(session: SessionDep,
     session.commit()
     session.refresh(new_row)
     base_addr = "/home/aryan/PycharmProjects/audioBC"
-    file_addr = "/static/sound/experiment_id:{}-row:{}.mp3".format(experiment_id, new_row.id)
+    file_addr = "/static/sound/experiment_id:{}-row:{}.wav".format(experiment_id, new_row.id)
+    st = datetime.now()
     with open(base_addr + file_addr, "wb") as f:
         f.write(file.file.read())
+        f.close()
+
     new_row.record = file_addr
 
     session.add(new_row)
     session.commit()
     session.refresh(new_row)
+
+    print(st, datetime.now())
     return new_row
