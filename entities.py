@@ -15,9 +15,11 @@ class SenderType(str, Enum):
 
 
 class CounterType(str, Enum):
-    GASOLINE = "gasoline"
-    DIESEL = "diesel"
-    HYBRID = "hybrid"
+    # GASOLINE = "gasoline"
+    # DIESEL = "diesel"
+    # HYBRID = "hybrid"
+    CAR = "car"
+    STREET_CAR = "street_car"
     TRUCK = "truck"
     BUS = "bus"
     SMALL_TRUCK = "small_truck"
