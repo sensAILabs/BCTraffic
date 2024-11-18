@@ -28,6 +28,13 @@ class CounterType(str, Enum):
     def list():
         return list(map(lambda c: c.value, CounterType))
 
+class CongestionLevel(str, Enum):
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"
+    @staticmethod
+    def list():
+        return list(map(lambda c: c.value, CounterType))
 
 class Counter(BaseModel):
     counter_type: CounterType
@@ -63,6 +70,7 @@ class ExperimentRowBase(SQLModel):
     wind_speed: int
     start_time: datetime
     end_time: datetime
+    congestion_level: CongestionLevel = None
     counters: list[Counter] | str = Field(sa_column=Column(JSON))
 
     def serialize_counters(self):

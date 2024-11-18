@@ -10,7 +10,7 @@ from sqlmodel import select
 from starlette.responses import HTMLResponse
 
 from dependency_injection import SessionDep, create_db_and_tables
-from entities import ExperimentCreate, Experiment, ExperimentRow, CounterType, ExperimentRowBase
+from entities import ExperimentCreate, Experiment, ExperimentRow, CounterType, ExperimentRowBase, CongestionLevel
 
 TEMPLATES_AUTO_RELOAD = True
 app = FastAPI()
@@ -70,7 +70,8 @@ def read_item(session: SessionDep, experiment_id: int, request: Request):
     exp = res.first()
     return templates.TemplateResponse(
         name="new_row.html",
-        context={"request": request, "page_title": "New Experiment", "experiment": exp, "counters": CounterType.list()},
+        context={"request": request, "page_title": "New Experiment", "experiment": exp,
+                 "congestion_levels": CongestionLevel.list(), "counters": CounterType.list()},
     )
 
 
@@ -119,9 +120,6 @@ async def create_experiment_row(session: SessionDep,
     print(row)
     print(row.keys())
 
-    mamd = {"salam": "akbar"}
-    print(mamd.keys())
-
     new_row = ExperimentRow(
         experiment_id=experiment_id,
         latitude=row["latitude"],
@@ -134,7 +132,7 @@ async def create_experiment_row(session: SessionDep,
         wind_speed=row["wind_speed"],
         start_time=datetime.fromtimestamp(row["start_time"] / 1000),
         end_time=datetime.fromtimestamp(row["end_time"] / 1000),
-
+        congestion_level=row["congestion_level"],
     )
 
     session.add(new_row)
