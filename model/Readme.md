@@ -146,31 +146,6 @@ print("Saved predictions.csv")
 
 ---
 
-## Tips & Best Practices
-
-- **Temporal Leakage**: When crafting shifts, avoid leaking future information into the present timestep.
-- **Scaling**: Tree-based models (like XGBoost) don’t require standardization, but be consistent with NA handling.
-- **Cross-Validation**: Prefer **time-series-aware** splits (e.g., expanding window) if data is temporally ordered.
-- **Feature Importance**: Use `model.get_booster().get_score()` or SHAP for interpretable insights.
-- **Augmentations**: The `*_aug.csv` files may include engineered variants; track which ones are used per experiment.
-
----
-
-## Reproducing Results
-
-1. Choose a family of shifted datasets (`corr_shift` or `fft_shift`).
-2. Define your **feature list** explicitly in the notebook.
-3. Split data into train/validation/test with a time-aware strategy.
-4. Train XGBoost with documented hyperparameters.
-5. Export `xgboost_model.pkl` and save the **feature list and preprocessing steps** alongside the model.
-
-Consider saving a `model_card.md` with:
-- Data sources and timespan
-- Preprocessing pipeline summary
-- Evaluation metrics by split
-- Known limitations & assumptions
-
----
 
 ## License
 
