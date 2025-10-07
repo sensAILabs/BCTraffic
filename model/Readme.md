@@ -174,10 +174,10 @@ Consider saving a `model_card.md` with:
 
 ## License
 
-Add a `LICENSE` file (e.g., MIT/Apache-2.0). If data files have separate terms, document them here.
+TBD
 
 ---
 
 ## Acknowledgments
 
-Thanks to contributors collecting BC data and providing traffic & meteorological signals that enable this modeling effort.
+TBD
