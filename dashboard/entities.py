@@ -71,7 +71,7 @@ class ExperimentRowBase(SQLModel):
     start_time: datetime
     end_time: datetime
     congestion_level: CongestionLevel = None
-    counters: list[Counter] | str = Field(sa_column=Column(JSON))
+    counters: list[Counter] = Field(sa_column=Column(JSON))
 
     def serialize_counters(self):
         if isinstance(self.counters, list) and all(isinstance(c, Counter) for c in self.counters):
@@ -92,7 +92,7 @@ class ExperimentRow(ExperimentRowBase, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     experiment_id: int = Field(foreign_key="experiment.id")
     experiment: "Experiment" = Relationship(back_populates="rows")
-    record: str | None
+    record : str
 
 
 class RecordedObject(SQLModel):
