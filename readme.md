@@ -1,6 +1,3 @@
-Here’s a simple top-level `README.md` you can drop into the **parent folder** that contains both the dashboard app and the model package.
-
-```markdown
 # Black Carbon Project — Monorepo
 
 This repository holds two parts of the Black Carbon (BC) project:
